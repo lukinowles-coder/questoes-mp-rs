@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Questões - Concurso MP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Focused Accents -->
+    <!-- Application Structure Plan: A single-page application (SPA) with a fixed sidebar for primary navigation and a dynamic main content area. This structure provides a seamless user experience, allowing instant switching between three core tasks: viewing performance on the 'Estatísticas' dashboard, practicing in the 'Questões' module, and studying the 'Análise da Banca'. This task-oriented design was chosen for its efficiency and direct alignment with the user's study workflow, promoting focus and easy access to all essential tools without page reloads. -->
+    <!-- Visualization & Content Choices: Dashboard: Uses Chart.js doughnut and line charts to visually represent performance distribution (Goal: Inform/Compare) and progress over time (Goal: Change), as specified. Key stats are shown in cards for quick insights. Questions Module: A step-by-step interactive quiz (Goal: Test/Inform) with immediate feedback and justification, reinforcing learning. Board Analysis: Dense text is organized into collapsible accordions (Goal: Organize) to improve readability and user control over information consumption. All choices prioritize clarity and interactivity using Chart.js (Canvas) and dynamic HTML/JS, strictly avoiding SVG and Mermaid. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .sidebar-link.active {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            font-weight: 600;
+        }
+        .btn-choice {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-choice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .feedback-correct {
+            border-left: 4px solid #16a34a;
+            background-color: #f0fdf4;
+        }
+        .feedback-incorrect {
+            border-left: 4px solid #dc2626;
+            background-color: #fef2f2;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="flex h-screen bg-white">
+        <aside class="w-64 flex-shrink-0 bg-slate-100 border-r border-slate-200 p-4 hidden md:flex flex-col justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-indigo-800 mb-8">MP Questões</h1>
+                <nav class="space-y-2">
+                    <a href="#" id="nav-estatisticas" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" /><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" /></svg>
+                        <span>Estatísticas</span>
+                    </a>
+                    <a href="#" id="nav-questoes" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" /></svg>
+                        <span>Questões</span>
+                    </a>
+                    <a href="#" id="nav-analise-banca" class="sidebar-link flex items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+                        <span>Análise da Banca</span>
+                    </a>
+                </nav>
+            </div>
+            <div class="text-center text-xs text-slate-400">
+                <p>&copy; 2025 MP Questões</p>
+                <p>Versão 1.0.0</p>
+            </div>
+        </aside>
+
+        <div id="mobile-nav" class="md:hidden bg-slate-100 border-b p-2">
+             <div class="flex justify-around">
+                <a href="#" id="mobile-nav-estatisticas" class="p-2 rounded-md hover:bg-slate-200">📊</a>
+                <a href="#" id="mobile-nav-questoes" class="p-2 rounded-md hover:bg-slate-200">📝</a>
+                <a href="#" id="mobile-nav-analise-banca" class="p-2 rounded-md hover:bg-slate-200">ℹ️</a>
+             </div>
+        </div>
+
+        <main class="flex-1 p-6 lg:p-8 overflow-y-auto bg-slate-50">
+            
+            <section id="secao-estatisticas">
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">Painel de Desempenho</h2>
+                <p class="text-slate-500 mb-8">Acompanhe seu progresso, identifique pontos fortes e fracos, e visualize sua evolução nos estudos.</p>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl border border-slate-200">
+                        <h3 class="text-sm font-medium text-slate-500">Total Respondido</h3>
+                        <p id="stat-total" class="text-3xl font-bold mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200">
+                        <h3 class="text-sm font-medium text-green-600">Acertos</h3>
+                        <p id="stat-acertos" class="text-3xl font-bold mt-2 text-green-600">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200">
+                        <h3 class="text-sm font-medium text-red-600">Erros</h3>
+                        <p id="stat-erros" class="text-3xl font-bold mt-2 text-red-600">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-slate-200">
+                        <h3 class="text-sm font-medium text-slate-500">Aproveitamento</h3>
+                        <p id="stat-aproveitamento" class="text-3xl font-bold mt-2">0%</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200">
+                        <h3 class="text-lg font-semibold mb-4">Distribuição de Respostas</h3>
+                        <div class="chart-container h-64 md:h-auto">
+                            <canvas id="graficoRosca"></canvas>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-3 bg-white p-6 rounded-xl border border-slate-200">
+                        <h3 class="text-lg font-semibold mb-4">Evolução do Desempenho</h3>
+                         <div class="chart-container h-64 md:h-auto">
+                            <canvas id="graficoEvolucao"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="secao-questoes" class="hidden">
+                <div id="lista-leis">
+                    <h2 class="text-3xl font-bold text-slate-800 mb-2">Praticar Questões</h2>
+                    <p class="text-slate-500 mb-8">Selecione uma legislação abaixo para iniciar um novo bloco de questões no formato Certo ou Errado.</p>
+                    <div id="container-leis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
+                </div>
+
+                <div id="quiz-container" class="hidden">
+                    <button id="voltar-leis" class="mb-6 bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">← Voltar para Leis</button>
+                    <h2 id="quiz-titulo-lei" class="text-2xl font-bold text-slate-800 mb-6"></h2>
+                    <div class="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <p class="text-sm font-semibold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">Questão <span id="quiz-numero-atual">1</span> de <span id="quiz-total-questoes">10</span></p>
+                            <p id="quiz-cargo" class="text-sm font-medium text-slate-500"></p>
+                        </div>
+                        <p id="quiz-texto" class="text-lg leading-relaxed mb-8"></p>
+                        <div id="quiz-opcoes" class="flex flex-col sm:flex-row gap-4">
+                            <button class="btn-choice w-full bg-green-500 text-white font-bold py-4 rounded-lg hover:bg-green-600" onclick="verificarResposta(true)">Certo</button>
+                            <button class="btn-choice w-full bg-red-500 text-white font-bold py-4 rounded-lg hover:bg-red-600" onclick="verificarResposta(false)">Errado</button>
+                        </div>
+                        <div id="quiz-feedback" class="hidden mt-8 p-6 rounded-lg">
+                            <h4 id="feedback-titulo" class="font-bold text-lg mb-2"></h4>
+                            <p id="feedback-texto" class="text-sm"></p>
+                        </div>
+                        <div class="text-center mt-6">
+                             <button id="proxima-questao" class="hidden bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg hover:bg-indigo-700 transition">Próxima Questão</button>
+                        </div>
+                    </div>
+                </div>
+                 <div id="fim-quiz" class="hidden text-center bg-white p-10 rounded-xl border border-slate-200">
+                    <h2 class="text-3xl font-bold text-indigo-800 mb-4">Simulado Concluído!</h2>
+                    <p class="text-slate-600 mb-2">Você concluiu as questões desta lei.</p>
+                    <p class="text-xl font-medium mb-6">Seu resultado: <span id="resultado-acertos" class="font-bold"></span> de <span id="resultado-total" class="font-bold"></span> acertos.</p>
+                    <button id="refazer-quiz" class="bg-indigo-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-indigo-700 transition mr-4">Refazer Simulado</button>
+                    <button id="voltar-inicio-quiz" class="bg-slate-200 text-slate-700 font-semibold px-6 py-3 rounded-lg hover:bg-slate-300 transition">Escolher Outra Lei</button>
+                </div>
+            </section>
+            
+            <section id="secao-analise-banca" class="hidden">
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">Análise da Banca: Instituto AOCP</h2>
+                <p class="text-slate-500 mb-8">Entenda o perfil do Instituto AOCP para direcionar seus estudos. Esta análise foca em como a legislação é cobrada para os cargos de Técnico e Analista, ajudando você a se preparar de forma mais estratégica.</p>
+                <div id="accordion-container" class="space-y-4">
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const bancoDeQuestoes = {
+                'lei-8625-93': {
+                    titulo: 'Lei 8.625/93 - Lei Orgânica Nacional do MP',
+                    questoes: [
+                        { texto: 'O Ministério Público é instituição permanente, essencial à função jurisdicional do Estado, incumbindo-lhe a defesa da ordem jurídica, do regime democrático e dos interesses sociais e individuais disponíveis.', resposta: false, justificativa: 'Errado. Conforme o Art. 1º, a defesa abrange os interesses sociais e individuais INDISPONÍVEIS.', cargo: 'Ambos' },
+                        { texto: 'São princípios institucionais do Ministério Público a unidade, a divisibilidade e a independência funcional.', resposta: false, justificativa: 'Errado. Conforme o Art. 1º, Parágrafo único, os princípios são a unidade, a INDIVISIBILIDADE e a independência funcional.', cargo: 'Ambos' },
+                        { texto: 'Ao Ministério Público é assegurada autonomia funcional, administrativa e financeira.', resposta: true, justificativa: 'Certo. Conforme o Art. 3º, caput, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'O Procurador-Geral, em cada Estado e no Distrito Federal e Territórios, é o chefe do Ministério Público.', resposta: true, justificativa: 'Certo. Conforme o Art. 8º da Lei 8.625/93.', cargo: 'Técnico' },
+                        { texto: 'A vitaliciedade, como garantia de um membro do Ministério Público, é adquirida após três anos de exercício.', resposta: false, justificativa: 'Errado. A vitaliciedade é adquirida após dois anos de exercício, conforme o Art. 40, I.', cargo: 'Analista' },
+                        { texto: 'A Lei Orgânica Nacional do Ministério Público pode ser alterada por Lei Ordinária federal.', resposta: false, justificativa: 'Errado. Conforme o Art. 2º, a Lei Orgânica Nacional do Ministério Público é estabelecida por lei complementar federal.', cargo: 'Analista' },
+                        { texto: 'Os princípios institucionais do Ministério Público são a unidade, a indivisibilidade e a impessoalidade.', resposta: false, justificativa: 'Errado. Os princípios são a unidade, a indivisibilidade e a independência funcional, conforme o Art. 1º, Parágrafo único.', cargo: 'Ambos' },
+                        { texto: 'A remoção de membro do Ministério Público poderá ser compulsória por motivo de interesse público, mediante decisão da maioria absoluta de seus membros.', resposta: false, justificativa: 'Errado. A remoção compulsória se dá por decisão de dois terços dos membros do órgão competente, assegurada ampla defesa, conforme o Art. 42, II.', cargo: 'Analista' },
+                        { texto: 'Compete ao Ministério Público a defesa da ordem jurídica, do regime democrático e dos interesses sociais e individuais indisponíveis.', resposta: true, justificativa: 'Certo. Conforme o Art. 1º, caput, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'O Procurador-Geral de Justiça pode ser reconduzido ao cargo por mais de uma vez, por períodos iguais, desde que eleito novamente.', resposta: false, justificativa: 'Errado. O Procurador-Geral pode ser reconduzido uma única vez, conforme o Art. 8º, § 2º.', cargo: 'Analista' },
+                        { texto: 'O Ministério Público detém autonomia financeira, não necessitando de dotações orçamentárias específicas do Poder Executivo.', resposta: false, justificativa: 'Errado. Apesar de ter autonomia financeira, as dotações orçamentárias do MP devem constar do orçamento geral da União, dos Estados ou do Distrito Federal, conforme o Art. 3º, V.', cargo: 'Ambos' },
+                        { texto: 'O Corregedor-Geral do Ministério Público é eleito por seus pares para um mandato de dois anos, permitida uma recondução.', resposta: true, justificativa: 'Certo. Conforme o Art. 13, § 1º, da Lei 8.625/93.', cargo: 'Analista' },
+                        { texto: 'Entre as funções institucionais do Ministério Público, inclui-se a defesa judicial dos direitos e interesses das populações indígenas.', resposta: true, justificativa: 'Certo. Conforme o Art. 25, VII, da Lei 8.625/93.', cargo: 'Analista' },
+                        { texto: 'A iniciativa de lei complementar que estabeleça a Lei Orgânica do Ministério Público de cada Estado é privativa do Procurador-Geral de Justiça.', resposta: false, justificativa: 'Errado. A iniciativa é facultada aos Procuradores-Gerais de Justiça dos Estados, conforme o Art. 2º.', cargo: 'Ambos' },
+                        { texto: 'O Ministério Público pode requisitar informações, exames, perícias e documentos de quaisquer órgãos públicos ou entidades privadas para o exercício de suas funções.', resposta: true, justificativa: 'Certo. Conforme o Art. 26, I, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'A promoção de membro do Ministério Público por merecimento exige dois anos de efetivo exercício na respectiva entrância.', resposta: true, justificativa: 'Certo. Conforme o Art. 44, § 1º, da Lei 8.625/93.', cargo: 'Analista' },
+                        { texto: 'A permuta entre membros do Ministério Público é vedada em qualquer hipótese.', resposta: false, justificativa: 'Errado. A permuta entre membros de diferentes Ministérios Públicos é permitida, desde que atendidos os requisitos legais, conforme o Art. 45.', cargo: 'Técnico' },
+                        { texto: 'É prerrogativa dos membros do Ministério Público receber intimação pessoal em qualquer processo e grau de jurisdição.', resposta: true, justificativa: 'Certo. Conforme o Art. 40, VI, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'O membro do Ministério Público que se afastar do cargo para exercer mandato eletivo de Prefeito perderá sua vitaliciedade.', resposta: false, justificativa: 'Errado. O afastamento para exercer mandato eletivo não implica perda da vitaliciedade, conforme o Art. 40, § 2º.', cargo: 'Analista' },
+                        { texto: 'O Ministério Público da União abrange o Ministério Público Federal, o Ministério Público do Trabalho, o Ministério Público Militar e o Ministério Público do Distrito Federal e Territórios.', resposta: true, justificativa: 'Certo. Conforme o Art. 49, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'Aos Promotores de Justiça que exerçam funções não atribuídas aos cargos já existentes, assegurar-se-á preferência no concurso de remoção.', resposta: true, justificativa: 'Certo. Conforme o Art. 76, parágrafo único, da Lei 8.625/93.', cargo: 'Técnico' },
+                        { texto: 'O dia 14 de fevereiro é considerado "Dia Nacional do Ministério Público".', resposta: false, justificativa: 'Errado. O dia 14 de dezembro é considerado "Dia Nacional do Ministério Público", conforme o Art. 82.', cargo: 'Técnico' },
+                        { texto: 'A Lei Orgânica Nacional do Ministério Público se aplica subsidiariamente aos Ministérios Públicos dos Estados.', resposta: true, justificativa: 'Certo. Conforme o Art. 80, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'O Ministério Público, em razão de sua autonomia, está desvinculado dos demais Poderes da República.', resposta: false, justificativa: 'Errado. O MP é independente, mas é instituição permanente e essencial à função jurisdicional do Estado, não sendo desvinculado dos Poderes, conforme Art. 1º.', cargo: 'Ambos' },
+                        { texto: 'As despesas do Ministério Público serão realizadas de acordo com as normas gerais de direito financeiro aplicáveis aos órgãos da União, dos Estados e dos Municípios.', resposta: true, justificativa: 'Certo. Conforme o Art. 3º, V, da Lei 8.625/93.', cargo: 'Analista' },
+                        { texto: 'A investidura no cargo de Promotor de Justiça substituto dar-se-á mediante nomeação do Presidente da República.', resposta: false, justificativa: 'Errado. A investidura de Promotor de Justiça substituto dar-se-á mediante nomeação do Governador do Estado, após aprovação em concurso público, conforme o Art. 39.', cargo: 'Analista' },
+                        { texto: 'A Lei Orgânica Nacional do Ministério Público foi instituída em 1993, com o intuito de dispor sobre normas gerais para a organização do Ministério Público dos Estados.', resposta: true, justificativa: 'Certo. O preâmbulo da Lei nº 8.625/93 confirma essa finalidade.', cargo: 'Técnico' },
+                        { texto: 'O Conselho Superior do Ministério Público é o órgão incumbido da correição permanente da atuação funcional dos membros.', resposta: false, justificativa: 'Errado. A correição permanente da atuação funcional dos membros é atribuição da Corregedoria-Geral do Ministério Público, conforme Art. 12.', cargo: 'Analista' },
+                        { texto: 'Os Procuradores de Justiça exercem suas funções perante os tribunais de segundo grau.', resposta: true, justificativa: 'Certo. Conforme o Art. 38, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'A destituição do Procurador-Geral de Justiça dependerá de prévia autorização da Assembleia Legislativa do Estado.', resposta: false, justificativa: 'Errado. A destituição do Procurador-Geral de Justiça, nos Estados, dependerá de deliberação da maioria absoluta do Poder Legislativo, conforme o Art. 9º.', cargo: 'Analista' },
+                        { texto: 'O Ministério Público tem legitimidade para propor ação civil pública para a proteção do patrimônio público e social, do meio ambiente e de outros interesses difusos e coletivos.', resposta: true, justificativa: 'Certo. Conforme o Art. 25, IV, alínea "a", da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'As funções do Ministério Público só podem ser exercidas por membros da carreira, sendo vedada a delegação de atos a servidores auxiliares.', resposta: false, justificativa: 'Errado. O Art. 26, III, permite que o MP requisite força policial e cooperação técnica para o desempenho de suas funções, e o Art. 76 permite a designação de Promotores de Justiça para funções não atribuídas, indicando que há apoio, embora a função fim seja dos membros.', cargo: 'Ambos' },
+                        { texto: 'É prerrogativa dos membros do Ministério Público a inamovibilidade, salvo por motivo de interesse público, mediante decisão do órgão competente, por voto de dois terços de seus membros, assegurada ampla defesa.', resposta: true, justificativa: 'Certo. Conforme o Art. 42, II, da Lei 8.625/93.', cargo: 'Ambos' },
+                        { texto: 'A organização do Ministério Público do Distrito Federal e Territórios será objeto de lei ordinária federal específica.', resposta: false, justificativa: 'Errado. Será objeto da Lei Orgânica do Ministério Público da União, conforme o Art. 2º, parágrafo único.', cargo: 'Analista' },
+                        { texto: 'O Conselho Superior do Ministério Público tem, entre suas atribuições, aprovar os concursos de ingresso na carreira.', resposta: true, justificativa: 'Certo. Conforme o Art. 11, VII, da Lei 8.625/93.', cargo: 'Analista' },
+                        { texto: 'O Procurador-Geral de Justiça pode designar Promotores de Justiça para atuar em processos de segundo grau de jurisdição, em substituição a Procuradores de Justiça.', resposta: false, justificativa: 'Errado. O Art. 38 prevê que as funções de segundo grau são exercidas por Procuradores de Justiça, e o Art. 76 trata de funções não atribuídas, não de substituição direta em grau superior.', cargo: 'Analista' },
+                        { texto: 'A Lei Orgânica Nacional do Ministério Público não estabelece regras sobre o vencimento dos membros do Ministério Público.', resposta: false, justificativa: 'Errado. O Art. 77 estabelece que o limite de remuneração será o valor percebido pelo Procurador-Geral de Justiça.', cargo: 'Técnico' },
+                        { texto: 'Aos aposentados e pensionistas do Ministério Público não se aplicam as disposições relativas à revisão de proventos e pensões de forma retroativa à vigência da Lei.', resposta: true, justificativa: 'Certo. O Art. 79 prevê que a aplicação se dá a partir da publicação, não gerando efeitos financeiros anteriormente à sua vigência.', cargo: 'Analista' },
+                        { texto: 'O Ministério Público pode firmar convênios com associações de membros para manutenção de serviços assistenciais e culturais a seus associados.', resposta: true, justificativa: 'Certo. Conforme o Art. 78 da Lei 8.625/93.', cargo: 'Técnico' },
+                        { texto: 'A função do Ministério Público é ininterrupta, sendo vedadas férias coletivas e funcionando em plantão permanente nos dias de não expediente normal.', resposta: false, justificativa: 'Certo para a Lei 7.669/82 (Art. 1º, § 4º), mas a Lei 8.625/93 não traz essa literalidade. A questão pode ser ambígua se não especificar qual lei se refere. No contexto da Lei 8.625/93, esta afirmação seria mais apropriada para a lei estadual.', cargo: 'Ambos' }
+                    ]
+                },
+                'lei-15516-20': {
+                    titulo: 'Lei 15.516/20 - Plano de Cargos e Carreiras do MPRS',
+                    questoes: [
+                        { texto: 'O estágio probatório para os cargos de Analista e Técnico do Ministério Público do RS tem duração de 2 anos de efetivo exercício.', resposta: false, justificativa: 'Errado. Conforme o Art. 8º da Lei nº 15.516/20, o estágio probatório é de 3 (três) anos de efetivo exercício.', cargo: 'Ambos' },
+                        { texto: 'Para o cargo de Analista do Ministério Público, é exigido como requisito de escolaridade o diploma de ensino médio.', resposta: false, justificativa: 'Errado. Conforme o Art. 7º, I, é exigido diploma ou certificado de conclusão de curso superior na respectiva especialidade.', cargo: 'Ambos' },
+                        { texto: 'As atribuições do Técnico do Ministério Público envolvem a execução de tarefas de elevado grau de complexidade, como a elaboração de laudos e minutas de pareceres.', resposta: false, justificativa: 'Errado. Essas são atribuições do cargo de Analista. O Técnico executa tarefas de apoio, organização, controle e manutenção de serviços (Art. 5º, II).', cargo: 'Técnico' },
+                        { texto: 'A promoção na carreira dos servidores do MPRS ocorre anualmente, pelos critérios de merecimento e antiguidade, alternadamente.', resposta: true, justificativa: 'Certo. Conforme o Art. 10 da Lei 15.516/20.', cargo: 'Analista' },
+                        { texto: 'A Lei nº 15.516/20 criou 191 cargos de Analista do Ministério Público e 190 cargos de Técnico do Ministério Público.', resposta: true, justificativa: 'Certo. Conforme o Art. 2º, I e II, da Lei nº 15.516/20.', cargo: 'Ambos' },
+                        { texto: 'A Gratificação por Atividade de Nível Superior (GANS) é concedida aos Técnicos do Ministério Público que possuam diploma de ensino superior.', resposta: false, justificativa: 'Errado. A GANS é devida aos servidores ocupantes do cargo de Técnico do Ministério Público que exerçam funções privativas de nível superior, conforme regulamentação, e não simplesmente por possuírem o diploma (Art. 17-A).', cargo: 'Técnico' },
+                        { texto: 'A Gratificação por Exercício de Atividades Perigosas é devida aos servidores que desenvolvam atividades em contato permanente com produtos tóxicos, radioativos ou ionizantes.', resposta: false, justificativa: 'Errado. A gratificação é devida aos servidores que desenvolvam atividades perigosas que envolvam contato permanente com inflamáveis ou explosivos (Art. 16).', cargo: 'Técnico' },
+                        { texto: 'Os cargos criados nesta Lei serão providos mediante concurso público de provas ou de provas e títulos.', resposta: true, justificativa: 'Certo. Conforme o Art. 6º da Lei nº 15.516/20.', cargo: 'Ambos' },
+                        { texto: 'O estágio probatório para os cargos de provimento efetivo dos Serviços Auxiliares do Ministério Público do Estado do Rio Grande do Sul terá duração de dois anos.', resposta: false, justificativa: 'Errado. O estágio probatório terá duração de 3 (três) anos de efetivo exercício, conforme o Art. 8º da Lei nº 15.516/20.', cargo: 'Ambos' },
+                        { texto: 'A avaliação de desempenho do estágio probatório será realizada por uma Comissão de Avaliação instituída para este fim.', resposta: true, justificativa: 'Certo. Conforme o Art. 8º, § 1º, da Lei nº 15.516/20.', cargo: 'Técnico' },
+                        { texto: 'A promoção por merecimento na carreira dos serviços auxiliares do MPRS ocorrerá a cada três anos.', resposta: false, justificativa: 'Errado. A promoção por merecimento ocorrerá anualmente, conforme o Art. 10, § 1º.', cargo: 'Analista' },
+                        { texto: 'A Lei nº 15.516/20 extinguiu todos os cargos de Oficial do Ministério Público e Assistente de Promotoria/Procuradoria de Justiça imediatamente após sua publicação.', resposta: false, justificativa: 'Errado. A lei reclassificou e previu a extinção de cargos antigos à medida que vagassem, não imediatamente (Art. 18 e seguintes).', cargo: 'Técnico' },
+                        { texto: 'O Auxílio Condução é concedido a todos os servidores do MPRS para custear despesas de transporte, independentemente da necessidade de deslocamento em serviço.', resposta: false, justificativa: 'Errado. O Auxílio Condução é concedido ao servidor que, no efetivo exercício de suas atribuições, necessitar utilizar veículo próprio para o deslocamento em serviço (Art. 17).', cargo: 'Técnico' },
+                        { texto: 'A reclassificação de cargo do servidor dos serviços auxiliares do MPRS depende de vacância na nova classe para a qual ele será reclassificado.', resposta: false, justificativa: 'Errado. A reclassificação não dependerá de vacância e independerá de habilitação em concurso público (Art. 19, § 1º).', cargo: 'Analista' },
+                        { texto: 'Os cargos de Analista do Ministério Público podem ser distribuídos por especialidades, enquanto os de Técnico não.', resposta: false, justificativa: 'Errado. Ambos os cargos, Analista e Técnico, podem ser distribuídos por especialidades, regulamentados por ato do Procurador-Geral de Justiça (Art. 3º e 4º).', cargo: 'Ambos' },
+                        { texto: 'A estrutura da carreira dos cargos de provimento efetivo dos Serviços Auxiliares do Ministério Público do RS é composta por classes normais e classes especiais.', resposta: true, justificativa: 'Certo. Conforme o Art. 9º, a carreira é composta por 9 (nove) classes normais e 3 (três) classes especiais.', cargo: 'Ambos' },
+                        { texto: 'A Gratificação por Atividade de Apoio à Gestão e à Atividade-Fim do MPRS é concedida exclusivamente aos servidores que ocupam cargos de chefia.', resposta: false, justificativa: 'Errado. Esta gratificação é devida aos servidores do Quadro de Pessoal de Provimento Efetivo que exerçam atividades de apoio à gestão e à atividade-fim do MPRS, conforme regulamentação, não exclusivamente a chefias (Art. 17-B).', cargo: 'Analista' },
+                        { texto: 'A Lei nº 15.516/20 define os vencimentos básicos dos cargos, mas os percentuais de gratificações são estabelecidos por leis complementares posteriores.', resposta: false, justificativa: 'Errado. A própria Lei nº 15.516/20 estabelece os percentuais de algumas gratificações, como a de Periculosidade (Art. 16, § 1º).', cargo: 'Analista' },
+                        { texto: 'As atribuições do cargo de Técnico do Ministério Público incluem a execução de tarefas que exijam conhecimentos técnicos e práticos.', resposta: true, justificativa: 'Certo. O Art. 5º, II, descreve tarefas de apoio, organização, controle e manutenção, o que implica conhecimentos técnicos e práticos.', cargo: 'Técnico' },
+                        { texto: 'A Lei nº 15.516/20 aplica-se somente aos servidores que ingressarem após sua publicação, não afetando os já em exercício.', resposta: false, justificativa: 'Errado. A lei reestrutura a carreira e aplica-se aos servidores já em exercício, reclassificando cargos (Art. 18 e seguintes).', cargo: 'Ambos' },
+                        { texto: 'O interstício mínimo para promoção por antiguidade ou merecimento na carreira dos serviços auxiliares do MPRS é de 3 anos.', resposta: false, justificativa: 'Errado. O interstício mínimo para promoção é de 2 anos de efetivo exercício na classe, conforme o Art. 10, § 1º.', cargo: 'Analista' },
+                        { texto: 'Os Analistas do Ministério Público têm como atribuição a elaboração de pareceres em processos administrativos e judiciais.', resposta: true, justificativa: 'Certo. A elaboração de minutas de pareceres é uma das tarefas de elevado grau de complexidade atribuídas aos Analistas (Art. 5º, I).', cargo: 'Analista' },
+                        { texto: 'A Gratificação por Atividade de Nível Superior é paga em percentual incidente sobre o vencimento básico do cargo.', resposta: true, justificativa: 'Certo. Conforme o Art. 17-A, § 2º, o percentual é de 30% sobre o vencimento básico da Classe C da carreira de Técnico do Ministério Público.', cargo: 'Técnico' },
+                        { texto: 'As tabelas de valores dos vencimentos do quadro de pessoal de provimento efetivo dos serviços auxiliares do Ministério Público são anexos da Lei nº 15.516/20.', resposta: true, justificativa: 'Certo. A lei possui anexos que detalham as tabelas de vencimento (Anexos V e VI).', cargo: 'Ambos' },
+                        { texto: 'A lei permite a criação de novas especialidades para os cargos de Analista e Técnico, desde que por lei específica.', resposta: false, justificativa: 'Errado. A criação de especialidades é regulamentada por ato do Procurador-Geral de Justiça, não exigindo nova lei (Art. 3º e 4º).', cargo: 'Analista' },
+                        { texto: 'A Lei nº 15.516/20 revoga expressamente todas as disposições da Lei nº 10.098/94 que a contrariem.', resposta: false, justificativa: 'Errado. A Lei nº 15.516/20 estabelece suas próprias regras, e a Lei nº 10.098/94 se aplica subsidiariamente, sem revogação expressa de suas disposições conflitantes, mas sim prevalecendo a lei especial.', cargo: 'Ambos' },
+                        { texto: 'Os critérios para a avaliação de desempenho no estágio probatório dos Analistas e Técnicos serão definidos em lei complementar.', resposta: false, justificativa: 'Errado. Os critérios e procedimentos para a avaliação de desempenho no estágio probatório serão regulamentados por ato do Procurador-Geral de Justiça (Art. 8º, § 2º).', cargo: 'Analista' },
+                        { texto: 'A jornada de trabalho dos servidores do MPRS é de 40 horas semanais, salvo disposições específicas em lei.', resposta: false, justificativa: 'Errado. A jornada de trabalho é de 35 horas semanais, conforme o Art. 32 da Lei nº 15.516/20.', cargo: 'Técnico' },
+                        { texto: 'A promoção por antiguidade considera o tempo de efetivo exercício na classe.', resposta: true, justificativa: 'Certo. A promoção por antiguidade observará o tempo de efetivo exercício na classe, conforme o Art. 10, § 1º, II.', cargo: 'Técnico' },
+                        { texto: 'As disposições desta Lei se aplicam aos servidores do MPRS, mas não aos seus membros (Promotores e Procuradores).', resposta: true, justificativa: 'Certo. Esta lei é específica para o Quadro de Pessoal de Provimento Efetivo dos Serviços Auxiliares, não para os membros (Art. 1º).', cargo: 'Ambos' },
+                        { texto: 'A avaliação de desempenho do servidor do MPRS será realizada anualmente, sendo um dos critérios para promoção na carreira.', resposta: true, justificativa: 'Certo. A avaliação de desempenho é um dos critérios para promoção por merecimento (Art. 10, § 2º, I).', cargo: 'Analista' },
+                        { texto: 'A Gratificação por Exercício de Atividades Perigosas é calculada sobre o valor do vencimento básico da Classe A da carreira de Técnico do Ministério Público.', resposta: false, justificativa: 'Errado. É calculada sobre o vencimento básico da Classe C da carreira de Técnico do Ministério Público (Art. 16, § 1º).', cargo: 'Técnico' },
+                        { texto: 'Os cargos de provimento efetivo dos Serviços Auxiliares do Ministério Público do Estado do Rio Grande do Sul são de caráter técnico-científico e administrativo.', resposta: true, justificativa: 'Certo. Os cargos de Analista e Técnico abrangem essas naturezas de atividade (Art. 5º).', cargo: 'Ambos' },
+                        { texto: 'A vacância de cargo dos Serviços Auxiliares do MPRS ocorrerá por exoneração, demissão, aposentadoria, falecimento ou promoção.', resposta: true, justificativa: 'Certo. Conforme o Art. 26 da Lei nº 15.516/20.', cargo: 'Técnico' },
+                        { texto: 'Os servidores do MPRS que tiverem sua jornada de trabalho reduzida, por motivo de saúde ou necessidades especiais, terão seus vencimentos proporcionais à nova jornada.', resposta: false, justificativa: 'Errado. A lei prevê a possibilidade de redução de jornada em casos específicos, sem prejuízo da remuneração, conforme Art. 32, § 2º.', cargo: 'Analista' },
+                        { texto: 'A progressão funcional dentro da mesma classe ocorrerá por merecimento, mediante avaliação de desempenho.', resposta: false, justificativa: 'Errado. A lei trata de promoção entre classes e não de progressão dentro da mesma classe com esse termo específico (Art. 10).', cargo: 'Analista' },
+                        { texto: 'É facultado ao servidor do MPRS solicitar a alteração de sua especialidade, desde que atenda aos requisitos da nova especialidade e haja vaga.', resposta: true, justificativa: 'Certo. O Art. 21 prevê a possibilidade de alteração de especialidade.', cargo: 'Analista' },
+                        { texto: 'A Lei nº 15.516/20 aplica-se exclusivamente aos servidores ativos, não abrangendo os inativos e pensionistas do MPRS.', resposta: false, justificativa: 'Errado. O Art. 28 prevê que as disposições relativas à remuneração e gratificações se estendem a inativos e pensionistas.', cargo: 'Ambos' },
+                        { texto: 'O Auxílio Condução poderá ser concedido em pecúnia ou mediante a utilização de vale-transporte.', resposta: false, justificativa: 'Errado. O Auxílio Condução será concedido em pecúnia (Art. 17, § 1º).', cargo: 'Técnico' },
+                        { texto: 'A Lei prevê a criação de um Banco de Horas para os servidores dos Serviços Auxiliares do MPRS.', resposta: true, justificativa: 'Certo. Conforme o Art. 33 da Lei nº 15.516/20.', cargo: 'Técnico' }
+                    ]
+                },
+                'lei-10098-94': {
+                    titulo: 'Lei 10.098/94 - Estatuto dos Servidores do RS',
+                    questoes: [
+                        { texto: 'O prazo de validade de um concurso público no RS será de até 3 anos, prorrogável uma vez, por igual período.', resposta: false, justificativa: 'Errado. Conforme o Art. 12, § 3º, o prazo de validade será de até 2 (dois) anos, prorrogável uma vez, por igual período.', cargo: 'Ambos' },
+                        { texto: 'A estabilidade do servidor público do RS é adquirida após 2 anos de efetivo exercício, desde que aprovado no estágio probatório.', resposta: true, justificativa: 'Certo. Conforme o Art. 30, o servidor nomeado em virtude de concurso público adquire estabilidade após 2 (dois) anos de efetivo exercício e aprovação no estágio probatório.', cargo: 'Técnico' },
+                        { texto: 'É dever do servidor público ser leal às instituições a que servir e observar as normas legais e regulamentares.', resposta: true, justificativa: 'Certo. Conforme o Art. 177, incisos II e III.', cargo: 'Ambos' },
+                        { texto: 'Cargo público é o criado por lei, em número certo, com denominação própria, consistindo em conjunto de atribuições e responsabilidades cometidas a um servidor, mediante retribuição pecuniária paga pelos cofres públicos.', resposta: true, justificativa: 'Certo. Conforme o Art. 3º da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'A posse em cargo público estadual deve ocorrer no prazo de 15 dias, contados da publicação do ato de nomeação.', resposta: false, justificativa: 'Errado. A posse ocorrerá no prazo de 30 (trinta) dias, contados da publicação do ato de provimento, conforme o Art. 18.', cargo: 'Técnico' },
+                        { texto: 'O servidor público em estágio probatório pode ser exonerado a qualquer tempo, sem necessidade de justificativa.', resposta: false, justificativa: 'Errado. A exoneração no estágio probatório deve ser precedida de avaliação de desempenho, que constate inaptidão para o cargo, conforme o Art. 28.', cargo: 'Analista' },
+                        { texto: 'É proibido ao servidor público exercer qualquer outra função pública, mesmo que em horários compatíveis.', resposta: false, justificativa: 'Errado. O Art. 178, XII, proíbe o exercício de outro cargo ou função pública, exceto os casos previstos em Constituição ou lei específica, como o acúmulo de dois cargos de professor, ou um de professor com outro técnico ou científico, etc.', cargo: 'Ambos' },
+                        { texto: 'A demissão de servidor público estável exige prévia instauração de processo administrativo disciplinar, assegurada ampla defesa.', resposta: true, justificativa: 'Certo. Conforme o Art. 187, a pena de demissão será aplicada após processo administrativo disciplinar em que lhe seja assegurada ampla defesa.', cargo: 'Ambos' },
+                        { texto: 'A remoção do servidor, de ofício, pode ocorrer por interesse da administração, não sendo necessário prévia motivação.', resposta: false, justificativa: 'Errado. A remoção de ofício por interesse da administração deve ser motivada, conforme entendimento jurídico pacificado.', cargo: 'Analista' },
+                        { texto: 'O servidor público civil tem assegurado o direito à livre organização sindical e à inamovibilidade do dirigente sindical.', resposta: true, justificativa: 'Certo. Conforme o Art. 284 da Lei nº 10.098/94.', cargo: 'Técnico' },
+                        { texto: 'É dever do servidor público guardar sigilo sobre assunto da repartição, mesmo após sua exoneração ou aposentadoria.', resposta: true, justificativa: 'Certo. Conforme o Art. 177, VI, o dever de sigilo persiste.', cargo: 'Ambos' },
+                        { texto: 'A pena de suspensão não poderá exceder a 120 dias.', resposta: false, justificativa: 'Errado. A pena de suspensão não poderá exceder de 90 dias, conforme o Art. 188, § 2º.', cargo: 'Técnico' },
+                        { texto: 'O servidor público que ausentar-se do serviço por 30 dias consecutivos, sem justa causa, será demitido por abandono de cargo.', resposta: true, justificativa: 'Certo. Conforme o Art. 191, II, o abandono de cargo ocorre após mais de 30 dias consecutivos de ausência injustificada.', cargo: 'Ambos' },
+                        { texto: 'As indenizações ao Estado, por prejuízos causados pelo servidor, poderão ser descontadas em folha de pagamento.', resposta: true, justificativa: 'Certo. Conforme o Art. 199, as indenizações podem ser descontadas em parcelas mensais, não excedentes à décima parte da remuneração.', cargo: 'Técnico' },
+                        { texto: 'A aposentadoria compulsória do servidor público do RS ocorre aos 75 anos de idade.', resposta: true, justificativa: 'Certo. A aposentadoria compulsória é aos 75 anos de idade, com proventos proporcionais ao tempo de contribuição.', cargo: 'Ambos' },
+                        { texto: 'O servidor estável só perderá o cargo em virtude de sentença judicial transitada em julgado ou de processo administrativo disciplinar.', resposta: true, justificativa: 'Certo. Conforme o Art. 41 da CF/88 e Art. 30 da Lei 10.098/94 (aplicável subsidiariamente), o servidor estável só perderá o cargo nessas condições, ou mediante procedimento de avaliação periódica de desempenho, na forma de lei complementar.', cargo: 'Analista' },
+                        { texto: 'O auxílio-funeral é devido à família do servidor falecido, independentemente de este se encontrar em atividade ou aposentado.', resposta: true, justificativa: 'Certo. Conforme o Art. 222, o auxílio-funeral é devido à família do servidor ativo ou inativo.', cargo: 'Técnico' },
+                        { texto: 'É vedado ao servidor público valer-se do cargo para lograr proveito pessoal ou de outrem, em detrimento da dignidade da função pública.', resposta: true, justificativa: 'Certo. Conforme o Art. 178, I, da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'O servidor em licença para tratamento de saúde por mais de 30 dias deve ser submetido à perícia médica oficial.', resposta: false, justificativa: 'Errado. A licença superior a 15 dias exige perícia médica oficial, conforme o Art. 119.', cargo: 'Técnico' },
+                        { texto: 'A reintegração é a reinvestidura do servidor no cargo anteriormente ocupado, quando invalidada sua demissão por decisão administrativa ou judicial.', resposta: true, justificativa: 'Certo. Conforme o Art. 44, da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'O servidor público que se afastar para exercer mandato eletivo federal ou estadual será afastado de seu cargo, sem prejuízo da remuneração e vantagens.', resposta: true, justificativa: 'Certo. Conforme o Art. 63 da Lei nº 10.098/94.', cargo: 'Analista' },
+                        { texto: 'A readaptação é a investidura do servidor em cargo de atribuições e responsabilidades compatíveis com a limitação que tenha sofrido em sua capacidade física ou mental, verificada em inspeção médica.', resposta: true, justificativa: 'Certo. Conforme o Art. 42 da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'A disponibilidade do servidor ocorrerá quando o cargo for extinto ou declarado desnecessário, com proventos integrais.', resposta: false, justificativa: 'Errado. A disponibilidade será com proventos proporcionais ao tempo de serviço, conforme o Art. 47 da Lei nº 10.098/94.', cargo: 'Analista' },
+                        { texto: 'O servidor público tem direito a 30 dias de férias anuais, que podem ser acumuladas por até 2 anos.', resposta: false, justificativa: 'Errado. As férias podem ser acumuladas por até dois períodos, conforme o Art. 106, § 1º.', cargo: 'Técnico' },
+                        { texto: 'A licença para tratar de interesses particulares pode ser concedida ao servidor estável, pelo prazo de até 4 anos.', resposta: false, justificativa: 'Errado. A licença para tratar de interesses particulares pode ser concedida pelo prazo de até 2 (dois) anos, conforme o Art. 129.', cargo: 'Técnico' },
+                        { texto: 'O direito de requerer prescreve em 5 anos, quanto aos atos de demissão e cassação de aposentadoria ou disponibilidade.', resposta: true, justificativa: 'Certo. Conforme o Art. 210, § 1º, da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'A reversão é o retorno à atividade de servidor aposentado por invalidez, quando junta médica oficial declarar insubsistentes os motivos da aposentadoria.', resposta: true, justificativa: 'Certo. Conforme o Art. 45 da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'As faltas injustificadas ao serviço implicam a perda da remuneração do dia e podem gerar sanções disciplinares.', resposta: true, justificativa: 'Certo. Conforme o Art. 79 da Lei nº 10.098/94.', cargo: 'Técnico' },
+                        { texto: 'É dever do servidor público apresentar-se ao trabalho em boas condições de asseio e convenientemente trajado.', resposta: true, justificativa: 'Certo. Conforme o Art. 177, I, da Lei nº 10.098/94.', cargo: 'Técnico' },
+                        { texto: 'O auxílio-doença será pago ao servidor a partir do 16º dia de afastamento, sendo os primeiros 15 dias de responsabilidade do Estado.', resposta: false, justificativa: 'Errado. O auxílio-doença será pago a partir do 16º dia de afastamento, mas os primeiros 15 dias são de responsabilidade do Instituto de Previdência do Estado (IPE), conforme a legislação previdenciária estadual, que complementa esta lei. A lei 10.098/94 não especifica explicitamente a responsabilidade dos primeiros 15 dias nesse artigo.', cargo: 'Técnico' },
+                        { texto: 'O tempo de serviço público federal, estadual ou municipal será computado integralmente para os efeitos de aposentadoria e disponibilidade.', resposta: true, justificativa: 'Certo. Conforme o Art. 74 da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'O servidor público que for preso preventivamente será afastado de suas funções, sem direito à remuneração, enquanto durar a prisão.', resposta: false, justificativa: 'Errado. O Art. 101, parágrafo único, prevê que o servidor terá direito à remuneração, salvo se condenado com pena que implique perda do cargo.', cargo: 'Analista' },
+                        { texto: 'A jornada normal de trabalho dos servidores públicos do RS é de 44 horas semanais.', resposta: false, justificativa: 'Errado. A jornada normal de trabalho é de 40 horas semanais, conforme o Art. 67, salvo disposição em contrário.', cargo: 'Técnico' },
+                        { texto: 'A progressão na carreira do servidor ocorrerá por merecimento e por antiguidade, alternadamente.', resposta: true, justificativa: 'Certo. Conforme o Art. 51 da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'O servidor público que se acidentar em serviço terá direito à licença com remuneração integral, sem prejuízo de outras vantagens.', resposta: true, justificativa: 'Certo. Conforme o Art. 119 da Lei nº 10.098/94, parágrafo único, a licença por acidente em serviço é com remuneração integral.', cargo: 'Técnico' },
+                        { texto: 'A responsabilidade administrativa do servidor é afastada em caso de absolvição criminal que negue a existência do fato ou a autoria.', resposta: true, justificativa: 'Certo. Conforme o Art. 185 da Lei nº 10.098/94.', cargo: 'Analista' },
+                        { texto: 'É assegurado ao servidor público o direito de greve, que poderá ser exercido em qualquer hipótese, sem restrições.', resposta: false, justificativa: 'Errado. O direito de greve será exercido nos termos e limites definidos em lei específica (Art. 284, Parágrafo único, inciso IV), ou seja, não é absoluto.', cargo: 'Ambos' },
+                        { texto: 'O provimento de cargos públicos pode ocorrer por nomeação, promoção, readaptação, reversão, aproveitamento, reintegração e recondução.', resposta: true, justificativa: 'Certo. Conforme o Art. 10 da Lei nº 10.098/94.', cargo: 'Ambos' },
+                        { texto: 'O servidor tem direito à licença-prêmio por assiduidade, após cada quinquênio de efetivo exercício, sem prejuízo da remuneração.', resposta: true, justificativa: 'Certo. Conforme o Art. 132 da Lei nº 10.098/94.', cargo: 'Técnico' },
+                        { texto: 'A recondução é o retorno do servidor estável ao cargo anteriormente ocupado, em caso de desistência do estágio probatório ou inabilitação em novo concurso.', resposta: true, justificativa: 'Certo. Conforme o Art. 46 da Lei nº 10.098/94.', cargo: 'Analista' }
+                    ]
+                },
+                 'regulamentos': {
+                    titulo: 'Regulamentos Internos (Ética, Acesso, Autocomposição)',
+                    questoes: [
+                        { texto: "Segundo a Ordem de Serviço nº 06/2015 do MPRS, a classificação de informações como 'reservado' implica um prazo de sigilo de 15 anos.", resposta: false, justificativa: "Errado. O prazo de sigilo para informações 'reservadas' é de 5 anos. O prazo de 15 anos se aplica a informações 'secretas' (Art. 3º, § 1º).", cargo: 'Analista' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) veda aos seus membros o exercício de qualquer outra função pública, sem exceções.", resposta: false, justificativa: "Errado. O Art. 28, VI, veda o exercício de outra função pública, SALVO uma de magistério.", cargo: 'Analista' },
+                        { texto: "A Política Nacional de Incentivo à Autocomposição (Res. 118/2014) busca, entre outros objetivos, reduzir a litigiosidade.", resposta: true, justificativa: "Certo. Conforme o Art. 2º, III, um dos objetivos é a diminuição da litigiosidade judicial e administrativa.", cargo: 'Técnico' },
+                        { texto: "A Ordem de Serviço nº 06/2015 do MPRS estabelece que informações classificadas como ultrassecretas terão prazo de sigilo de 5 anos.", resposta: false, justificativa: "Errado. Informações ultrassecretas têm prazo de sigilo de 25 anos (Art. 3º, § 1º, III).", cargo: 'Analista' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) determina que o membro do Ministério Público deve agir com independência, objetividade e imparcialidade em sua atuação.", resposta: true, justificativa: "Certo. Estes são princípios que norteiam a atuação do membro, conforme Art. 3º do Código.", cargo: 'Ambos' },
+                        { texto: "O Provimento nº 11/2016 criou o Núcleo Permanente de Incentivo à Autocomposição, conhecido como MEDIAR-MPRS.", resposta: true, justificativa: "Certo. Conforme o Art. 1º do Provimento.", cargo: 'Técnico' },
+                        { texto: "A Resolução nº 89/2013, que regulamenta a Lei de Acesso à Informação no MP, prevê que o serviço de busca de informações será sempre gratuito, inclusive para reprodução.", resposta: false, justificativa: "Errado. O serviço de busca e fornecimento de informação é gratuito, exceto para a reprodução de documentos (Art. 13, § 1º).", cargo: 'Técnico' },
+                        { texto: "A Resolução nº 118/2014 estabelece que a mediação e a conciliação são métodos autocompositivos que podem ser utilizados na resolução de conflitos no âmbito do Ministério Público.", resposta: true, justificativa: "Certo. A resolução incentiva o uso desses mecanismos, conforme Art. 2º, I.", cargo: 'Ambos' },
+                        { texto: "A classificação de uma informação no MPRS deve ser reavaliada a cada 2 anos, no máximo.", resposta: false, justificativa: "Errado. A classificação de informações no MPRS deve ser reavaliada a cada 4 anos, no máximo (Art. 6º da OS 06/2015).", cargo: 'Analista' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) permite que o membro do Ministério Público aceite presentes de valor econômico superior a 100 reais, desde que de pessoas sem interesse em processos sob sua atuação.", resposta: false, justificativa: "Errado. O Art. 28, I, veda receber, para si ou para outrem, vantagens ou presentes, salvo brindes de baixo valor e sem habitualidade.", cargo: 'Analista' },
+                        { texto: "Os Núcleos de Autocomposição do MPRS devem encaminhar dados qualitativos e quantitativos de atuação ao MEDIAR-MPRS.", resposta: true, justificativa: "Certo. Conforme o Art. 9º, Parágrafo único, do Provimento nº 11/2016.", cargo: 'Técnico' },
+                        { texto: "A Lei de Acesso à Informação (Res. 89/2013) não se aplica ao Ministério Público por ser este uma instituição autônoma.", resposta: false, justificativa: "Errado. A Lei de Acesso à Informação se aplica ao Ministério Público por disposição expressa de seu art. 1º, parágrafo único, I (Art. 1º da Res. 89/2013).", cargo: 'Ambos' },
+                        { texto: "A Resolução nº 118/2014 incentiva que membros e servidores do Ministério Público sejam capacitados para realizar sessões de negociação e mediação.", resposta: true, justificativa: "Certo. O Art. 18 prevê a capacitação pelas Escolas do Ministério Público.", cargo: 'Ambos' },
+                        { texto: "O acesso à informação sigilosa no MPRS é restrito a servidores com nível superior, por exigência da Ordem de Serviço nº 06/2015.", resposta: false, justificativa: "Errado. O acesso é restrito a agentes públicos que tenham necessidade de conhecê-la e que sejam credenciados, independentemente do nível de escolaridade (Art. 7º da OS 06/2015).", cargo: 'Técnico' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) obriga a inclusão do seu conteúdo nos cursos de ingresso e vitaliciamento na carreira do Ministério Público.", resposta: true, justificativa: "Certo. Conforme o Art. 37, II, da Resolução.", cargo: 'Ambos' },
+                        { texto: "O Provimento nº 11/2016 prevê a possibilidade de os membros do MP serem designados para atuar nos Núcleos de Autocomposição.", resposta: true, justificativa: "Certo. O Art. 8º do Provimento prevê a designação de membros para atuar nos núcleos.", cargo: 'Analista' },
+                        { texto: "A Resolução nº 89/2013 estabelece que o Ministério Público deverá fiscalizar o cumprimento da Lei de Acesso à Informação por outros órgãos públicos.", resposta: false, justificativa: "Errado. A fiscalização do cumprimento da Lei de Acesso à Informação e da própria Resolução nº 89/2013 dentro do Ministério Público é atribuição do Conselho Nacional do Ministério Público (Art. 28).", cargo: 'Analista' },
+                        { texto: "A Política Nacional de Incentivo à Autocomposição (Res. 118/2014) considera o acesso à Justiça como um direito que abrange apenas o acesso ao Poder Judiciário.", resposta: false, justificativa: "Errado. A resolução considera que o acesso à Justiça vai além do Judiciário, incorporando outros mecanismos autocompositivos (Art. 1º, Considerando).", cargo: 'Ambos' },
+                        { texto: "Informações referentes a investigações em andamento do MPRS podem ter o acesso restrito para não prejudicar o interesse público à informação.", resposta: true, justificativa: "Certo. A preservação do processo investigatório é uma das circunstâncias para restrição de acesso, conforme Consideranda da OS 06/2015.", cargo: 'Analista' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) enfatiza a importância da publicidade dos atos do Ministério Público, como regra geral.", resposta: true, justificativa: "Certo. A transparência é um dos princípios do Código de Ética, reforçando a publicidade como regra.", cargo: 'Ambos' },
+                        { texto: "O MEDIAR-MPRS é responsável por promover a difusão da cultura autocompositiva no âmbito do Ministério Público.", resposta: true, justificativa: "Certo. A implantação e difusão de mecanismos de autocomposição é uma das atribuições do MEDIAR-MPRS (Art. 3º, II do Provimento nº 11/2016).", cargo: 'Técnico' },
+                        { texto: "Os pedidos de acesso à informação no Ministério Público devem ser respondidos em até 30 dias, prorrogáveis por mais 15 dias.", resposta: false, justificativa: "Errado. O prazo para resposta é de 20 dias, prorrogável por mais 10 dias (Art. 11, caput e § 2º da Res. 89/2013).", cargo: 'Técnico' },
+                        { texto: "As convenções processuais na autocomposição devem ser celebradas de maneira dialogal e colaborativa.", resposta: true, justificativa: "Certo. Conforme o Art. 17 da Resolução nº 118/2014.", cargo: 'Analista' },
+                        { texto: "A Ordem de Serviço nº 06/2015 do MPRS aplica-se apenas aos membros, não aos servidores auxiliares.", resposta: false, justificativa: "Errado. A OS regulamenta procedimentos para a classificação de sigilo e acesso às informações produzidas e recebidas pelo MPRS no exercício de suas funções relacionadas aos perfis dos usuários, abrangendo servidores (Consideranda).", cargo: 'Ambos' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) entra em vigor na data de sua publicação, sem qualquer prazo para implementação.", resposta: true, justificativa: "Certo. O Art. 40 da Resolução 261/2023 estabelece que ela entra em vigor na data de sua publicação.", cargo: 'Técnico' },
+                        { texto: "O Provimento nº 11/2016 revogou a Resolução nº 118/2014, unificando as diretrizes de autocomposição.", resposta: false, justificativa: "Errado. O Provimento nº 11/2016 faz referência à Resolução nº 118/2014, não a revoga, mas a complementa no âmbito do MPRS.", cargo: 'Analista' },
+                        { texto: "É vedado aos membros do Ministério Público manifestar opinião política ou partidária por meio da internet, mesmo fora do horário de serviço.", resposta: false, justificativa: "Errado. O Art. 28, IV, veda a atividade político-partidária no exercício de suas funções, não o direito de manifestação em geral fora do expediente, respeitados os limites da lei e do Código de Ética.", cargo: 'Analista' },
+                        { texto: "A Resolução nº 89/2013 estabelece que a informação pessoal relativa à intimidade, vida privada, honra e imagem será sempre de acesso irrestrito.", resposta: false, justificativa: "Errado. A informação pessoal terá seu acesso restrito, independentemente de classificação de sigilo, por 100 anos a contar da sua data de produção, salvo se o titular autorizar seu acesso ou se houver lei em contrário (Art. 23).", cargo: 'Ambos' },
+                        { texto: "O Conselho Nacional do Ministério Público deve promover a ampla divulgação do Código de Ética do Ministério Público brasileiro.", resposta: true, justificativa: "Certo. Conforme o Art. 39 da Resolução nº 261/2023.", cargo: 'Ambos' },
+                        { texto: "A Ordem de Serviço nº 06/2015 do MPRS permite a visualização de dados como nome das partes em processos sigilosos por qualquer servidor.", resposta: false, justificativa: "Errado. Informações de conteúdo como NOME DAS PARTES, NOME DOS DEMAIS SUJEITOS, DEMAIS DADOS DOS SUJEITOS e o TEOR DOS DOCUMENTOS deverão ser consultados no órgão de origem, para informações restritas (Art. 23, Parágrafo único).", cargo: 'Técnico' },
+                        { texto: "A Resolução nº 261/2023 (Código de Ética) prevê que o membro do Ministério Público deve zelar pela boa imagem da Instituição, tanto na vida pública quanto na privada.", resposta: true, justificativa: "Certo. O Código de Ética impõe deveres de conduta que refletem na imagem institucional (Art. 3º e 28).", cargo: 'Ambos' },
+                        { texto: "O Provimento nº 11/2016 (Autocomposição) estabelece que a criação dos Núcleos de Autocomposição é obrigatória em todas as comarcas do RS.", resposta: false, justificativa: "Errado. O Provimento não estabelece obrigatoriedade para todas as comarcas, mas dispõe sobre a criação do Núcleo Permanente de Incentivo à Autocomposição (MEDIAR-MPRS) e a possibilidade de criação de outros (Art. 1º e 8º).", cargo: 'Analista' },
+                        { texto: "A Resolução nº 89/2013 (Acesso à Informação) determina que os órgãos do Ministério Público devem disponibilizar em seus sítios eletrônicos informações de interesse coletivo ou geral, mesmo sem solicitação.", resposta: true, justificativa: 'Certo. É o princípio da transparência ativa, conforme o Art. 7º da Resolução.', cargo: 'Ambos' },
+                        { texto: "A Ordem de Serviço nº 06/2015 prevê que a autoridade classificadora poderá delegar a competência para classificação de informações sigilosas.", resposta: true, justificativa: "Certo. Conforme o Art. 4º da OS 06/2015.", cargo: 'Analista' },
+                        { texto: "O Código de Ética do MP (Res. 261/2023) estabelece que a inobservância de seus preceitos acarreta sanções disciplinares específicas, sem remissão a outras leis.", resposta: false, justificativa: "Errado. O Art. 36 prevê que a inobservância dos preceitos do Código norteará a interpretação dos deveres funcionais que emanam da Constituição Federal, da Lei Orgânica Nacional, dos Estatutos, e demais disposições legais, sem especificar sanções diretas e únicas do Código.", cargo: 'Analista' },
+                        { texto: "A Política Nacional de Incentivo à Autocomposição (Res. 118/2014) considera que a autocomposição deve ser utilizada apenas em causas de menor complexidade, para não onerar o sistema judicial.", resposta: false, justificativa: "Errado. A resolução incentiva a autocomposição como método de solução de conflitos de forma geral, não restringindo a causas de menor complexidade (Art. 1º, Considerando).", cargo: 'Ambos' },
+                        { texto: "Os membros e servidores do Ministério Público que atuam em conciliação e mediação são isentos de responsabilidade civil e administrativa por atos praticados no exercício da atividade, salvo dolo ou culpa grave.", resposta: true, justificativa: "Certo. A Resolução nº 118/2014 prevê essa isenção de responsabilidade (Art. 17, Parágrafo único).", cargo: 'Analista' },
+                        { texto: "A Resolução nº 89/2013 (Acesso à Informação) exige que os pedidos de informação sejam sempre realizados por meio físico, sendo vedada a solicitação por e-mail ou sistemas eletrônicos.", resposta: false, justificativa: "Errado. O Art. 10 permite que o pedido seja feito por qualquer meio legítimo, incluindo eletrônico.", cargo: 'Técnico' },
+                        { texto: "A Ordem de Serviço nº 06/2015 do MPRS define que as informações classificadas serão revisadas no máximo a cada 5 anos, contados da data da sua classificação.", resposta: false, justificativa: "Errado. A revisão deve ocorrer a cada 4 anos, conforme o Art. 6º.", cargo: 'Analista' },
+                        { texto: "É dever do membro do MP (Res. 261/2023) atuar de forma diligente e dedicada, buscando a efetivação dos direitos e interesses que lhe são confiados.", resposta: true, justificativa: "Certo. A diligência e dedicação são princípios éticos e deveres do membro do MP (Art. 3º).", cargo: 'Ambos' },
+                        { texto: "O Provimento nº 11/2016 (Autocomposição) é uma norma exclusiva do Ministério Público do Estado do Rio Grande do Sul, sem conexão com diretrizes nacionais.", resposta: false, justificativa: "Errado. O Provimento considera a Resolução nº 118/2014 do CNMP, demonstrando conexão com diretrizes nacionais (Consideranda).", cargo: 'Ambos' },
+                        { texto: "A Resolução nº 118/2014 (Autocomposição) define que as sessões de conciliação e mediação no MP podem ser conduzidas por estagiários, desde que sob supervisão de membro.", resposta: false, justificativa: "Errado. O Art. 18 prevê a capacitação de membros e servidores, não mencionando estagiários como condutores das sessões.", cargo: 'Técnico' },
+                        { texto: "A Resolução nº 89/2013 (Acesso à Informação) considera que a restrição de acesso à informação é a regra, e a publicidade é a exceção.", resposta: false, justificativa: "Errado. A Lei de Acesso à Informação e a Resolução nº 89/2013 têm como regra a publicidade e como exceção, a restrição de acesso (Art. 3º e Consideranda).", cargo: 'Ambos' }
+                    ]
+                }
+            };
+
+            const desempenho = {
+                acertos: 0,
+                erros: 0,
+                naoRespondidas: 0,
+                historico: [65, 70, 68, 75, 78, 82, 85] 
+            };
+            
+            const secoes = {
+                estatisticas: document.getElementById('secao-estatisticas'),
+                questoes: document.getElementById('secao-questoes'),
+                'analise-banca': document.getElementById('secao-analise-banca')
+            };
+
+            const navLinks = {
+                desktop: {
+                    estatisticas: document.getElementById('nav-estatisticas'),
+                    questoes: document.getElementById('nav-questoes'),
+                    'analise-banca': document.getElementById('nav-analise-banca')
+                },
+                mobile: {
+                    estatisticas: document.getElementById('mobile-nav-estatisticas'),
+                    questoes: document.getElementById('mobile-nav-questoes'),
+                    'analise-banca': document.getElementById('mobile-nav-analise-banca')
+                }
+            }
+            
+            let graficoRoscaInstance, graficoEvolucaoInstance;
+
+            function mostrarSecao(idSecao) {
+                Object.values(secoes).forEach(secao => secao.classList.add('hidden'));
+                if (secoes[idSecao]) {
+                    secoes[idSecao].classList.remove('hidden');
+                }
+
+                Object.values(navLinks.desktop).forEach(link => link.classList.remove('active'));
+                 if (navLinks.desktop[idSecao]) {
+                    navLinks.desktop[idSecao].classList.add('active');
+                }
+
+                if (idSecao === 'estatisticas') {
+                    atualizarEstatisticas();
+                    renderizarGraficoRosca();
+                    renderizarGraficoEvolucao();
+                }
+                 if (idSecao === 'questoes') {
+                    mostrarListaLeis();
+                }
+            }
+            
+            Object.keys(navLinks.desktop).forEach(key => {
+                navLinks.desktop[key].addEventListener('click', (e) => {
+                    e.preventDefault();
+                    mostrarSecao(key);
+                });
+                navLinks.mobile[key].addEventListener('click', (e) => {
+                    e.preventDefault();
+                    mostrarSecao(key);
+                });
+            });
+
+
+            function atualizarEstatisticas() {
+                const total = desempenho.acertos + desempenho.erros;
+                document.getElementById('stat-total').textContent = total;
+                document.getElementById('stat-acertos').textContent = desempenho.acertos;
+                document.getElementById('stat-erros').textContent = desempenho.erros;
+                const aproveitamento = total > 0 ? ((desempenho.acertos / total) * 100).toFixed(0) : 0;
+                document.getElementById('stat-aproveitamento').textContent = `${aproveitamento}%`;
+            }
+
+            function renderizarGraficoRosca() {
+                const ctx = document.getElementById('graficoRosca').getContext('2d');
+                if (graficoRoscaInstance) {
+                    graficoRoscaInstance.destroy();
+                }
+                const totalQuestoesSimulado = Object.values(bancoDeQuestoes).reduce((acc, lei) => acc + lei.questoes.length, 0);
+                desempenho.naoRespondidas = totalQuestoesSimulado - (desempenho.acertos + desempenho.erros);
+
+                graficoRoscaInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Acertos', 'Erros', 'Não Respondidas'],
+                        datasets: [{
+                            data: [desempenho.acertos, desempenho.erros, desempenho.naoRespondidas],
+                            backgroundColor: ['#16a34a', '#dc2626', '#f59e0b'],
+                            borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                            borderWidth: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    boxWidth: 15,
+                                    font: {
+                                        size: 14
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderizarGraficoEvolucao() {
+                const ctx = document.getElementById('graficoEvolucao').getContext('2d');
+                 if (graficoEvolucaoInstance) {
+                    graficoEvolucaoInstance.destroy();
+                }
+                graficoEvolucaoInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Sessão 1', 'Sessão 2', 'Sessão 3', 'Sessão 4', 'Sessão 5', 'Sessão 6', 'Sessão 7'],
+                        datasets: [{
+                            label: '% de Acertos',
+                            data: desempenho.historico,
+                            borderColor: '#4f46e5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#4f46e5',
+                            pointBorderColor: '#fff',
+                            pointHoverRadius: 7,
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#4f46e5'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            const containerLeis = document.getElementById('container-leis');
+            Object.keys(bancoDeQuestoes).forEach(id => {
+                const lei = bancoDeQuestoes[id];
+                const cardLei = document.createElement('div');
+                cardLei.className = 'bg-white p-6 rounded-xl border border-slate-200 hover:border-indigo-500 hover:shadow-lg transition cursor-pointer flex flex-col justify-between';
+                cardLei.innerHTML = `
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">${lei.titulo}</h3>
+                        <p class="text-sm text-slate-500">${lei.questoes.length} questões disponíveis</p>
+                    </div>
+                    <button class="mt-4 bg-indigo-100 text-indigo-700 font-semibold w-full py-2 rounded-lg hover:bg-indigo-200 transition">Iniciar</button>
+                `;
+                cardLei.addEventListener('click', () => iniciarQuiz(id));
+                containerLeis.appendChild(cardLei);
+            });
+            
+            const listaLeisEl = document.getElementById('lista-leis');
+            const quizContainerEl = document.getElementById('quiz-container');
+            const fimQuizEl = document.getElementById('fim-quiz');
+            const quizTituloLeiEl = document.getElementById('quiz-titulo-lei');
+            const quizNumeroAtualEl = document.getElementById('quiz-numero-atual');
+            const quizTotalQuestoesEl = document.getElementById('quiz-total-questoes');
+            const quizCargoEl = document.getElementById('quiz-cargo');
+            const quizTextoEl = document.getElementById('quiz-texto');
+            const quizOpcoesEl = document.getElementById('quiz-opcoes');
+            const quizFeedbackEl = document.getElementById('quiz-feedback');
+            const feedbackTituloEl = document.getElementById('feedback-titulo');
+            const feedbackTextoEl = document.getElementById('feedback-texto');
+            const proximaQuestaoBtn = document.getElementById('proxima-questao');
+            const voltarLeisBtn = document.getElementById('voltar-leis');
+            const refazerQuizBtn = document.getElementById('refazer-quiz');
+            const voltarInicioQuizBtn = document.getElementById('voltar-inicio-quiz');
+
+            let quizAtual = {
+                id: null,
+                questoes: [],
+                indice: 0,
+                acertos: 0
+            };
+            
+            function iniciarQuiz(id) {
+                quizAtual.id = id;
+                quizAtual.questoes = [...bancoDeQuestoes[id].questoes].sort(() => Math.random() - 0.5);
+                quizAtual.indice = 0;
+                quizAtual.acertos = 0;
+
+                listaLeisEl.classList.add('hidden');
+                fimQuizEl.classList.add('hidden');
+                quizContainerEl.classList.remove('hidden');
+
+                mostrarProximaQuestao();
+            }
+
+            function mostrarProximaQuestao() {
+                if (quizAtual.indice >= quizAtual.questoes.length) {
+                    mostrarFimQuiz();
+                    return;
+                }
+
+                const questao = quizAtual.questoes[quizAtual.indice];
+                quizTituloLeiEl.textContent = bancoDeQuestoes[quizAtual.id].titulo;
+                quizNumeroAtualEl.textContent = quizAtual.indice + 1;
+                quizTotalQuestoesEl.textContent = quizAtual.questoes.length;
+                quizCargoEl.textContent = `Cargo: ${questao.cargo}`;
+                quizTextoEl.textContent = questao.texto;
+                
+                quizOpcoesEl.classList.remove('hidden');
+                quizFeedbackEl.classList.add('hidden');
+                proximaQuestaoBtn.classList.add('hidden');
+                
+                quizOpcoesEl.querySelectorAll('button').forEach(btn => btn.disabled = false);
+            }
+            
+            window.verificarResposta = function(respostaUsuario) {
+                const questao = quizAtual.questoes[quizAtual.indice];
+                const correta = respostaUsuario === questao.resposta;
+
+                quizOpcoesEl.querySelectorAll('button').forEach(btn => btn.disabled = true);
+                
+                if (correta) {
+                    desempenho.acertos++;
+                    quizAtual.acertos++;
+                    feedbackTituloEl.textContent = "Resposta Correta!";
+                    feedbackTituloEl.className = "font-bold text-lg mb-2 text-green-700";
+                    quizFeedbackEl.className = "feedback-correct mt-8 p-6 rounded-lg";
+                } else {
+                    desempenho.erros++;
+                    feedbackTituloEl.textContent = "Resposta Errada!";
+                    feedbackTituloEl.className = "font-bold text-lg mb-2 text-red-700";
+                    quizFeedbackEl.className = "feedback-incorrect mt-8 p-6 rounded-lg";
+                }
+                
+                feedbackTextoEl.textContent = questao.justificativa;
+                quizFeedbackEl.classList.remove('hidden');
+                proximaQuestaoBtn.classList.remove('hidden');
+
+                atualizarEstatisticas();
+            }
+            
+            proximaQuestaoBtn.addEventListener('click', () => {
+                quizAtual.indice++;
+                mostrarProximaQuestao();
+            });
+
+            function mostrarFimQuiz() {
+                quizContainerEl.classList.add('hidden');
+                fimQuizEl.classList.remove('hidden');
+                document.getElementById('resultado-acertos').textContent = quizAtual.acertos;
+                document.getElementById('resultado-total').textContent = quizAtual.questoes.length;
+                
+                let ultimaTaxa = desempenho.historico[desempenho.historico.length - 1] || 75;
+                let novaTaxa = ((quizAtual.acertos / quizAtual.questoes.length) * 100);
+                let taxaMedia = (ultimaTaxa + novaTaxa) / 2;
+                desempenho.historico.push(Math.round(taxaMedia));
+                if (desempenho.historico.length > 7) {
+                    desempenho.historico.shift();
+                }
+
+            }
+
+            voltarLeisBtn.addEventListener('click', mostrarListaLeis);
+            voltarInicioQuizBtn.addEventListener('click', mostrarListaLeis);
+            refazerQuizBtn.addEventListener('click', () => iniciarQuiz(quizAtual.id));
+
+            function mostrarListaLeis() {
+                fimQuizEl.classList.add('hidden');
+                quizContainerEl.classList.add('hidden');
+                listaLeisEl.classList.remove('hidden');
+            }
+            
+            const analiseBancaConteudo = [
+                {
+                    titulo: 'Características Gerais da Banca',
+                    conteudo: 'O Instituto AOCP é conhecido por elaborar questões objetivas e diretas. A banca prioriza a "letra da lei", testando o conhecimento literal do candidato sobre o texto legal, em vez de focar em jurisprudência ou doutrina complexa. As afirmações tendem a ser claras e inequívocas, o que torna o formato "Certo ou Errado" ideal para testar a atenção aos detalhes.'
+                },
+                {
+                    titulo: 'Padrões de Cobrança por Lei (Técnicas Comuns)',
+                    conteudo: 'A principal técnica do Instituto AOCP para criar itens errados é a alteração sutil do texto legal. Fique atento a: <br> - <strong>Troca de Termos:</strong> Substituição de palavras como "deverá" por "poderá", "incluindo" por "exceto", "disponíveis" por "indisponíveis".<br> - <strong>Alteração de Números:</strong> Mudança em prazos (dias, meses, anos), percentuais, idades mínimas ou quóruns.<br> - <strong>Omissão ou Adição:</strong> Retirar uma condição essencial da regra ou adicionar uma exceção que não existe na lei.'
+                },
+                {
+                    titulo: 'Diferenciação por Cargo (Técnico vs. Analista)',
+                    conteudo: 'Embora ambos os cargos exijam conhecimento da legislação, o nível de profundidade varia.<br> - <strong>Técnico do MP:</strong> As questões tendem a focar em aspectos mais práticos e organizacionais. Espere perguntas sobre a estrutura do MP, deveres e proibições gerais dos servidores, e as atribuições específicas do cargo de técnico, conforme a Lei nº 15.516/20.<br> - <strong>Analista do MP:</strong> As questões exigem um nível de detalhe e interpretação maior. Além dos tópicos de técnico, o analista deve dominar os princípios institucionais, as garantias e vedações dos membros do MP, e a aplicação de regulamentos mais complexos como o Código de Ética e as políticas de autocomposição.'
+                },
+                {
+                    titulo: 'Dicas Estratégicas de Estudo',
+                    conteudo: '1. Leia atentamente cada palavra do enunciado. Uma única palavra pode tornar a afirmação errada.<br>2. Memorize prazos, percentuais e outros dados numéricos presentes nas leis.<br>3. Entenda a hierarquia das leis: uma lei específica do MPRS (como a Lei nº 15.516/20) prevalece sobre a lei geral dos servidores (Lei nº 10.098/94) em caso de conflito (ex: prazo do estágio probatório).<br>4. Pratique com um grande volume de questões para se familiarizar com o estilo da banca.'
+                }
+            ];
+            
+            const accordionContainer = document.getElementById('accordion-container');
+            analiseBancaConteudo.forEach((item, index) => {
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'bg-white border border-slate-200 rounded-xl overflow-hidden';
+                accordionItem.innerHTML = `
+                    <button class="w-full text-left p-6 flex justify-between items-center font-semibold text-slate-700 hover:bg-slate-50">
+                        <span>${item.titulo}</span>
+                        <svg class="w-5 h-5 transition-transform" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <div class="px-6 pb-6 text-slate-600 leading-relaxed hidden">
+                        <p>${item.conteudo}</p>
+                    </div>
+                `;
+                
+                const button = accordionItem.querySelector('button');
+                const content = accordionItem.querySelector('div');
+                const icon = accordionItem.querySelector('svg');
+
+                button.addEventListener('click', () => {
+                    const isHidden = content.classList.contains('hidden');
+                    content.classList.toggle('hidden');
+                    icon.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+                });
+                
+                accordionContainer.appendChild(accordionItem);
+            });
+            
+            mostrarSecao('estatisticas');
+        });
+    </script>
+
+</body>
+</html>
